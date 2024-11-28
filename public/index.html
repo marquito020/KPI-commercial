@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de KPIs</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f1f5f9;
+            color: #333;
+        }
+
+        /* Encabezado */
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+        }
+
+        /* Contenedor principal */
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-section {
+            margin-bottom: 50px;
+        }
+
+        .chart-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+            color: #555;
+            text-align: left;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 400px; /* Altura fija para evitar gráficos pequeños */
+            margin: 0 auto;
+            display: block;
+        }
+
+        /* Adaptabilidad */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .chart-section h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 15px 0;
+            background-color: #007bff;
+            color: white;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dashboard de KPIs</h1>
+    </header>
+
+    <div class="container">
+        <!-- Gráfico de Estado de KPIs -->
+        <div class="chart-section">
+            <h2>Distribución de Estados de KPIs</h2>
+            <canvas id="kpiChart"></canvas>
+        </div>
+
+        <!-- Gráfico de Ventas por Categoría -->
+        <div class="chart-section">
+            <h2>Ventas por Categoría</h2>
+            <canvas id="salesChart"></canvas>
+        </div>
+
+        <!-- Gráfico de Visitas por Fecha -->
+        <div class="chart-section">
+            <h2>Visitas por Fecha</h2>
+            <canvas id="visitsChart"></canvas>
+        </div>
+
+        <!-- Gráfico de Alertas por Nivel -->
+        <div class="chart-section">
+            <h2>Alertas Activas por Nivel de Severidad</h2>
+            <canvas id="alertsChart"></canvas>
+        </div>
+    </div>
+
+    <footer>
+        © 2024 Dashboard de KPIs. Todos los derechos reservados.
+    </footer>
+
+    <script>
+        // Renderizar Distribución de Estados de KPIs
+        async function renderKPIChart() {
+            const response = await fetch('/api/kpi-status');
+            const data = await response.json();
+
+            new Chart(document.getElementById('kpiChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Cantidad de KPIs',
+                        data: data.values,
+                        backgroundColor: ['#4caf50', '#ffc107', '#f44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Cantidad' } },
+                        x: { title: { display: true, text: 'Estado' } }
+                    }
+                }
+            });
+        }
+
+        // Renderizar Ventas por Categoría
+        async function renderSalesChart() {
+            const response = await fetch('/api/sales-by-category');
+            const data = await response.json();
+
+            new Chart(document.getElementById('salesChart'), {
+                type: 'pie',
+                data: {
+                    labels: data.map(d => d.category),
+                    datasets: [{
+                        data: data.map(d => d.total_sales),
+                        backgroundColor: ['#4caf50', '#2196f3', '#ff9800']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+        }
+
+        // Renderizar Visitas por Fecha
+        async function renderVisitsChart() {
+            const response = await fetch('/api/visits-by-date');
+            const data = await response.json();
+
+            const labels = data.map(d => new Date(d.visit_date).toLocaleDateString('es-ES'));
+            const totalVisits = data.map(d => d.total_visits);
+            const uniqueVisits = data.map(d => d.unique_visits);
+
+            new Chart(document.getElementById('visitsChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Visitas Totales',
+                            data: totalVisits,
+                            borderColor: '#4caf50',
+                            tension: 0.4,
+                            borderWidth: 3,
+                            fill: false
+                        },
+                        {
+                            label: 'Visitas Únicas',
+                            data: uniqueVisits,
+                            borderColor: '#ff9800',
+                            tension: 0.4,
+                            borderWidth: 3,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Fecha' } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Visitas' } }
+                    }
+                }
+            });
+        }
+
+        // Renderizar Alertas por Nivel de Severidad
+        async function renderAlertsChart() {
+            const response = await fetch('/api/alerts-by-level');
+            const data = await response.json();
+
+            new Chart(document.getElementById('alertsChart'), {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.alert_level),
+                    datasets: [{
+                        label: 'Cantidad de Alertas',
+                        data: data.map(d => d.count),
+                        backgroundColor: ['#ff9800', '#ffc107', '#f44336']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Cantidad' } },
+                        x: { title: { display: true, text: 'Nivel de Severidad' } }
+                    }
+                }
+            });
+        }
+
+        // Llamar las funciones para renderizar los gráficos
+        renderKPIChart();
+        renderSalesChart();
+        renderVisitsChart();
+        renderAlertsChart();
+    </script>
+</body>
+</html>

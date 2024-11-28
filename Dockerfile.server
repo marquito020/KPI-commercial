@@ -1,0 +1,17 @@
+FROM node:16
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar dependencias y archivos necesarios
+COPY package.json ./
+RUN npm install
+
+# Copiar el resto del código
+COPY . .
+
+# Exponer el puerto
+EXPOSE 4000
+
+# Comando para iniciar el servidor
+CMD ["node", "server.js"]

@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:15
+    container_name: kpi_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_DB: kpi_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./populate.sql:/docker-entrypoint-initdb.d/populate.sql
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: kpi_server
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+
+volumes:
+  db_data:
