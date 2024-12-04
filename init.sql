@@ -15,6 +15,24 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE purchases (
+    purchase_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    product_id INT NOT NULL, -- Relacionado con una tabla de productos
+    price DECIMAL(15, 2) NOT NULL,
+    quantity INT NOT NULL,
+    rating DECIMAL(3, 2) DEFAULT NULL, -- Calificación del producto
+    purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_interactions (
+    interaction_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    interaction_type VARCHAR(50) NOT NULL, -- Ejemplo: 'click', 'view', 'purchase'
+    interaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
 CREATE TABLE kpis (
     kpi_id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,

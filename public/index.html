@@ -17,7 +17,7 @@
 
         /* Encabezado */
         header {
-            background-color: #007bff;
+            background-color: rgb(46, 170, 17);
             color: white;
             padding: 20px 0;
             text-align: center;
@@ -48,7 +48,8 @@
             font-size: 1.8rem;
             color: #555;
             text-align: left;
-            border-bottom: 2px solid #007bff;
+            /* border-bottom: 2px solid #007bff; */
+            border-bottom: 2px solid rgb(46, 170, 17);
             padding-bottom: 5px;
         }
 
@@ -74,7 +75,7 @@
         footer {
             text-align: center;
             padding: 15px 0;
-            background-color: #007bff;
+            background-color:rgb(46, 170, 17);
             color: white;
             font-size: 1rem;
         }
@@ -86,6 +87,18 @@
     </header>
 
     <div class="container">
+        <div class="chart-section">
+            <h2>Índice de Preferencia de Compra (IPC)</h2>
+            <canvas id="ipcChart"></canvas>
+        </div>
+        
+        
+        <!-- Gráfico de Tasa de Conversión -->
+        <div class="chart-section">
+            <h2>Tasa de Conversión por Fecha</h2>
+            <canvas id="conversionChart"></canvas>
+        </div>
+        
         <!-- Gráfico de Estado de KPIs -->
         <div class="chart-section">
             <h2>Distribución de Estados de KPIs</h2>
@@ -240,7 +253,113 @@
             });
         }
 
+        // Renderizar Tasa de Conversión
+        async function renderConversionChart() {
+            const response = await fetch('/api/conversion-rate');
+            const data = await response.json();
+
+            const labels = data.map(d => new Date(d.visit_date).toLocaleDateString('es-ES'));
+            const conversionRates = data.map(d => d.conversion_rate);
+
+            new Chart(document.getElementById('conversionChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Tasa de Conversión (%)',
+                            data: conversionRates,
+                            borderColor: '#007bff',
+                            tension: 0.4,
+                            borderWidth: 3,
+                            backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Fecha' } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Tasa de Conversión (%)' } }
+                    }
+                }
+            });
+        }
+
+        // Renderizar Índice de Preferencia de Compra (IPC)
+        async function renderIPCChart() {
+            try {
+                const response = await fetch('/api/ipc');
+                const data = await response.json();
+
+                // Usar los nombres de usuario en las etiquetas
+                const labels = data.map(d => d.user_name || `Usuario ${d.user_id}`);
+                const ipcValues = data.map(d => d.ipc);
+
+                // Crear el gráfico de IPC
+                new Chart(document.getElementById('ipcChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Índice de Preferencia de Compra (IPC)',
+                                data: ipcValues,
+                                backgroundColor: '#4caf50',
+                                borderColor: '#388e3c',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: true }
+                        },
+                        scales: {
+                            x: {
+                                title: { display: true, text: 'Usuarios' },
+                                ticks: {
+                                    callback: function (value, index, values) {
+                                        // Limitar los nombres largos para no saturar el eje X
+                                        const label = this.getLabelForValue(value);
+                                        return label.length > 15 ? `${label.substring(0, 15)}...` : label;
+                                    }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Índice de Preferencia de Compra' }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 20,
+                                bottom: 20
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error rendering IPC chart:', error);
+            }
+        }
+
+
         // Llamar las funciones para renderizar los gráficos
+        renderIPCChart();
+        renderConversionChart();
         renderKPIChart();
         renderSalesChart();
         renderVisitsChart();

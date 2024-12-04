@@ -9,15 +9,22 @@ CREATE TABLE IF NOT EXISTS migration_logs (
 
 -- Verificar si los datos iniciales ya fueron poblados
 DO $$
+DECLARE
+    first_names TEXT[] := ARRAY['Juan', 'María', 'Carlos', 'Ana', 'Luis', 'Sofía', 'Jorge', 'Isabel', 'Pedro', 'Elena'];
+    last_names TEXT[] := ARRAY['Gómez', 'Pérez', 'Rodríguez', 'López', 'Martínez', 'García', 'Hernández', 'Sánchez', 'Ramírez', 'Flores'];
+    first_name TEXT;
+    last_name TEXT;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM migration_logs WHERE migration_name = 'populate_initial_data') THEN
-        -- Poblar la tabla `users`
+        -- Poblar la tabla `users` con nombres aleatorios
         FOR i IN 1..500 LOOP
+            first_name := first_names[FLOOR(random() * array_length(first_names, 1) + 1)];
+            last_name := last_names[FLOOR(random() * array_length(last_names, 1) + 1)];
             INSERT INTO users (name, email, password_hash, role, created_at, updated_at)
             VALUES (
-                'User ' || i, 
-                'user' || i || '@example.com', 
-                gen_random_uuid()::TEXT, -- Simula un hash aleatorio
+                first_name || ' ' || last_name, -- Nombre generado aleatoriamente
+                LOWER(first_name || '.' || last_name || i || '@example.com'), -- Email basado en el nombre
+                gen_random_uuid()::TEXT, -- Simula un hash aleatorio para la contraseña
                 CAST(CASE WHEN i % 3 = 0 THEN 'admin' 
                           WHEN i % 3 = 1 THEN 'manager' 
                           ELSE 'analyst' END AS role_type),
@@ -56,6 +63,31 @@ BEGIN
                           ELSE 'off_track' END AS status_type),
                 NOW() - (i * INTERVAL '1 day'), 
                 NOW()
+            );
+        END LOOP;
+
+        -- Poblar la tabla `purchases`
+        FOR i IN 1..1000 LOOP
+            INSERT INTO purchases (user_id, product_id, price, quantity, rating, purchase_date)
+            VALUES (
+                (i % 500) + 1, -- IDs de usuarios entre 1 y 500
+                (i % 100) + 1, -- IDs de productos entre 1 y 100
+                TRUNC(random() * 500 * 100) / 100, -- Precios entre 0 y 500
+                (random() * 5)::INT + 1, -- Cantidades entre 1 y 5
+                TRUNC(random() * 5 * 100) / 100, -- Calificación entre 0 y 5
+                NOW() - (i * INTERVAL '1 hour')
+            );
+        END LOOP;
+
+        -- Poblar la tabla `user_interactions`
+        FOR i IN 1..2000 LOOP
+            INSERT INTO user_interactions (user_id, interaction_type, interaction_date)
+            VALUES (
+                (i % 500) + 1, -- IDs de usuarios entre 1 y 500
+                CASE WHEN i % 3 = 0 THEN 'click' 
+                     WHEN i % 3 = 1 THEN 'view' 
+                     ELSE 'purchase' END, -- Tipos de interacción
+                NOW() - (i * INTERVAL '30 minutes')
             );
         END LOOP;
 

@@ -115,6 +115,67 @@ app.get('/api/alerts-by-level', async (req, res) => {
     res.json(result.rows);
 });
 
+// Endpoint para calcular la tasa de conversión
+app.get('/api/conversion-rate', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                v.visit_date, 
+                COALESCE(SUM(s.total_sales), 0) AS total_sales,
+                SUM(v.total_visits) AS total_visits,
+                CASE 
+                    WHEN SUM(v.total_visits) = 0 THEN 0
+                    ELSE (COALESCE(SUM(s.total_sales), 0) / SUM(v.total_visits)) * 100
+                END AS conversion_rate
+            FROM visits v
+            LEFT JOIN sales s ON v.visit_date = s.sale_date
+            GROUP BY v.visit_date
+            ORDER BY v.visit_date
+        `);
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching conversion rate:', error);
+        res.status(500).send('Error fetching conversion rate');
+    }
+});
+
+app.get('/api/ipc', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                u.name AS user_name, -- Agregar el nombre del usuario
+                p.user_id,
+                (AVG(p.price) / COALESCE((SELECT AVG(price) 
+                                          FROM purchases 
+                                          WHERE purchases.product_id = ANY(ARRAY_AGG(p.product_id))), 1)) AS Pc,
+                COUNT(i.interaction_id) AS Fc,
+                (AVG(p.rating) / COALESCE((SELECT AVG(rating) 
+                                           FROM purchases 
+                                           WHERE purchases.product_id = ANY(ARRAY_AGG(p.product_id))), 1)) AS Qc,
+                COUNT(p.purchase_id) AS Tc,
+                ((AVG(p.price) / COALESCE((SELECT AVG(price) 
+                                           FROM purchases 
+                                           WHERE purchases.product_id = ANY(ARRAY_AGG(p.product_id))), 1)) *
+                 COUNT(i.interaction_id) *
+                 (AVG(p.rating) / COALESCE((SELECT AVG(rating) 
+                                            FROM purchases 
+                                            WHERE purchases.product_id = ANY(ARRAY_AGG(p.product_id))), 1))) /
+                COUNT(p.purchase_id) AS IPC
+            FROM purchases p
+            LEFT JOIN user_interactions i ON p.user_id = i.user_id
+            INNER JOIN users u ON p.user_id = u.user_id -- Relacionar con la tabla users
+            GROUP BY p.user_id, u.name -- Agrupar por user_id y nombre
+            ORDER BY IPC DESC;
+        `);
+
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error calculating IPC:', error);
+        res.status(500).send('Error calculating IPC');
+    }
+});
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {
